@@ -2,13 +2,13 @@
 Contributors: Bueltge
 Tags: post, custom post type, archive
 Requires at least: 3.0
-Tested up to: 3.1.3
-Stable tag: 0.0.2
+Tested up to: 3.2-RC1
+Stable tag: 0.0.3
 
 Archive your post types, also possible with cron.
 
 == Description ==
-Archive your post types, also possible via cron.
+Archive your post types, also possible via cron; but only active via var inside the php-file.
 
 = Localizations =
 * Thanks to [Frank B&uuml;ltge](http://bueltge.de/ "Frank B&uuml;ltge") for german language file
@@ -35,6 +35,10 @@ The plugin comes with various translations, please refer to the [WordPress Codex
 2. In Archive, also possible to restore
 
 == Changelog ==
+= 0.0.3 =
+* small fixes on language file for better read.
+* cron on default inactive
+
 = 0.0.2 =
 * first release on wp.org
 
