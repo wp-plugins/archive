@@ -6,11 +6,10 @@
  * Domain Path: /languages
  * Description: Archive your post types, also with cron.
  * Author: Frank Bültge
- * Version: 0.0.2
+ * Version: 0.0.4
  * Licence: GPLv2
  * Author URI: http://bueltge.de
- * Upgrade Check: none
- * Last Change: 25.05.2011
+ * Last Change: 15.07.2011
  */
 
 /**
@@ -100,7 +99,7 @@ if ( ! class_exists( 'FB_Archive' ) ) {
 		 * 
 		 * @var boolean
 		 */
-		public $scheduled_archiving = FALSE; // in days
+		public $scheduled_archiving = FALSE; // true or false
 		
 		/**
 		 * Key for days, there we archived posts
@@ -117,6 +116,13 @@ if ( ! class_exists( 'FB_Archive' ) ) {
 		public $scheduled_archiving_post_type = array( 'post' ); // example: 'post', 'page'
 		
 		/**
+		 * Bool for add to query loop
+		 * 
+		 * @var boolean
+		 */
+		public $add_to_query = FALSE; // true or false
+		
+		/**
 		 * construct
 		 * 
 		 * @uses add_filter, add_action, localize_plugin, register_activation_hook, register_uninstall_hook
@@ -125,6 +131,10 @@ if ( ! class_exists( 'FB_Archive' ) ) {
 		 * @return void
 		 */
 		public function __construct () {
+			
+			// include settings on profile
+			//require_once dirname( __FILE__ ) . DIRECTORY_SEPARATOR . 'inc/class.settings.php';
+			//$fb_archive_settings = FB_Archive_Settings :: get_object();
 			
 			// for  WP 3.1 and higher
 			//add_filter( 'site_transient_update_plugins', array( &$this, 'remove_update_nag' ) );
@@ -155,6 +165,25 @@ if ( ! class_exists( 'FB_Archive' ) ) {
 			
 			// help on snippet-pages in next version
 			add_action( 'contextual_help', array( &$this, 'add_help_text' ), 10, 3 );
+			
+			// add to query loop
+			if ( $this -> add_to_query )
+				add_action( 'pre_get_posts', array( $this, 'add_to_query' ) );
+			// add shortcode for list items of archive
+			add_shortcode( 'archive', array(&$this, 'add_shortcode') );
+		}
+		
+		
+		/**
+		 * Return Textdomain string
+		 * 
+		 * @access  public
+		 * @since   0.0.2
+		 * @return  string
+		 */
+		public function get_textdomain() {
+			
+			return $this -> textdomain;
 		}
 		
 		
@@ -198,7 +227,7 @@ if ( ! class_exists( 'FB_Archive' ) ) {
 		 *         Name, PluginURI, Version, Description, Author, AuthorURI, TextDomain, DomainPath, Network, Title
 		 * @return string
 		 */
-		private function get_plugin_data( $value = 'Version' ) {
+		public function get_plugin_data( $value = 'Version' ) {
 			
 			$plugin_data = get_plugin_data( __FILE__ );
 			$plugin_value = $plugin_data[$value];
@@ -403,7 +432,12 @@ if ( ! class_exists( 'FB_Archive' ) ) {
 				);
 			}
 			
-			if ( $this->post_type_1 == $post_type )
+			$defined_pages = array( 
+				'archiv&amp;page=archive_settings_group&amp;settings-updated=true', 
+				'archiv&amp;page=archive_settings_group', 
+				$this -> post_type_1 
+			);
+			if ( in_array( $post_type, $defined_pages ) )
 				wp_enqueue_style( 'archive-page' );
 			elseif ( 'taxonomy=' . $this->taxonomy_type_1 . '&amp;' . $this->post_type_1 == $post_type )
 				wp_enqueue_style( 'archive-structure-page' );
@@ -1094,11 +1128,110 @@ if ( ! class_exists( 'FB_Archive' ) ) {
 			
 			$contextual_help = 
 				'<p>' . 
-				__( 'Archive - maybe later an help for this plugin', $this->textdomain ) . 
+				__( 'Archive - maybe later an help for this plugin', $this -> textdomain ) . 
 				'</p>' . "\n";
 			
 			return $contextual_help;
 		}
+		
+		
+		/**
+		 * Add to Archive to qury
+		 * 
+		 * @uses   query_vars, is_admin, is_preview
+		 * @since  0.0.4
+		 * @param  array  $query
+		 * @return string $query
+		 */
+		public function add_to_query( $query ) {
+		
+			if ( is_admin() || is_preview() )
+				return;
+			
+			if ( ! isset( $query -> query_vars['suppress_filters'] ) || FALSE == $query -> query_vars['suppress_filters'] )
+				$query -> set( 'post_type', array( 'post', $this -> post_type_1 ) );
+			
+			return $query;
+		}
+		
+		
+		/**
+		 * Add shortcode, example: [snippet id=12]
+		 * 
+		 * @uses   shortcode_atts
+		 * @since  0.0.1
+		 * @param  array  $atts
+		 * @param  string $content
+		 * @return string | array $archived_posts
+		 */
+		public function add_shortcode( $atts, $content = NULL ) {
+			global $wpdb;
+			
+			extract( 
+				shortcode_atts( array(
+					'count'         => -1, // count or -1 for all posts
+					'post_status'   => 'publish', // status or all for all posts
+					'echo'          => TRUE, // echo or give an array for use external
+					'return_markup' => 'ul', // markup before echo title, content
+					'title_markup'  => 'li', // markup before item
+					'content'       => FALSE, // view also content?
+					'debug'         => FALSE // debug mor vor view an array
+				), $atts
+			) );
+			
+			if ( ! is_numeric($count) )
+				$message = wp_sprintf( __( 'The Snippet %s is non integer value or the title of this Snippet!', $this->textdomain ), esc_html($id) );
+			
+			if ( ! empty($message) && current_user_can('read') ) {
+				$message = '<div id="message" class="error fade" style="background:red;"><p>' . $message . '</p></div>';
+				add_action( 'wp_footer', create_function( '', "echo '$message';" ) );
+			}
+			
+			$args = array(
+				'post_type' => $this -> post_type_1,
+				'post_status' => $post_status,
+				'posts_per_page' => $count
+			);
+			
+			$archived_posts = '';
+			
+			$posts = new WP_Query( $args );
+			if ( $posts -> have_posts() ) {
+				
+				while ( $posts -> have_posts() ) {
+						$posts -> the_post();
+						$post_id  = get_the_ID();
+					if ( $echo ) {
+						$archived_posts .= '<' . $title_markup . '><a href="' . 
+						get_permalink($post_id) . '" title="' . get_the_title() . '" >' . 
+						get_the_title() . '</a>';
+						if ( $content )
+							$archived_posts .= apply_filters( 'the_content', get_the_content() );
+						$archived_posts .= '</' . $title_markup . '>';
+					} else {
+						(array) $archived_post = new stdClass();
+						$archived_post -> post_id   = $post_id;
+						$archived_post -> title     = get_the_title();
+						$archived_post -> permalink = get_permalink($post_id);
+						$archived_post -> content   = apply_filters( 'the_content', get_the_content() );
+						
+						$archived_posts[] = $archived_post;
+					}
+				}
+				
+			}
+			
+			wp_reset_query();
+			
+			$archived_posts = '<' . $return_markup . '>' . $archived_posts . '</' . $return_markup . '>';
+			$archived_posts = apply_filters( 'fb_get_archive', $archived_posts ) ;
+			
+			if ($debug)
+				var_dump( $archived_posts );
+			else
+				return $archived_posts;
+		}
+		
 		
 	} // end class
 	
