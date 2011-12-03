@@ -2,7 +2,7 @@
 Contributors: Bueltge
 Tags: post, custom post type, archive
 Requires at least: 3.0
-Tested up to: 3.2.1
+Tested up to: 3.3
 Stable tag: 0.0.4
 
 Archive your post types, also possible with cron and list via shortcode on frontend.
@@ -26,6 +26,7 @@ An example for use shortcode with params: `[archive count="10" content="true"]`
 
 = Localizations =
 * Thanks to [Frank B&uuml;ltge](http://bueltge.de/ "Frank B&uuml;ltge") for german language file
+* Thanks to [Brian from InMotion Hosting](http://www.inmotionhosting.com/) for spanish translation
 
 == Installation ==
 = Requirements =
