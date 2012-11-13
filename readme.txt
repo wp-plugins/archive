@@ -1,5 +1,5 @@
 === Archive ===
-Contributors: Bueltge
+Contributors: Bueltge, inpsyde
 Tags: post, custom post type, archive
 Requires at least: 3.0
 Tested up to: 3.5-Beta3
