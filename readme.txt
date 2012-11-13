@@ -2,7 +2,7 @@
 Contributors: Bueltge
 Tags: post, custom post type, archive
 Requires at least: 3.0
-Tested up to: 3.4-Beta3
+Tested up to: 3.5-Beta3
 Stable tag: 0.0.4
 
 Archive your post types, also possible with cron and list via shortcode on frontend.
@@ -23,6 +23,10 @@ The Shortcode can use different params and use the folow defaults.
 `
 
 An example for use shortcode with params: `[archive count="10" content="true"]`
+
+**Made by [Inpsyde](http://inpsyde.com) &middot; We love WordPress**
+
+Have a look at the premium plugins in our [market](http://marketpress.com).
 
 = Localizations =
 * Thanks to [Frank B&uuml;ltge](http://bueltge.de/ "Frank B&uuml;ltge") for german language file
