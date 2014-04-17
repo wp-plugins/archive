@@ -4,9 +4,9 @@
  * Plugin URI: http://premium.bueltge.de/
  * Text Domain: archive
  * Domain Path: /languages
- * Description: Archive your post types, also with cron.
+ * Description: Archive your post types, also with cron and customize all via Settings page.
  * Author: Frank Bültge
- * Version: 0.0.4
+ * Version: 0.0.5
  * Licence: GPLv2
  * Author URI: http://bueltge.de
  * Last Change: 15.07.2011
@@ -40,14 +40,14 @@ if ( ! class_exists( 'FB_Archive' ) ) {
 	
 	class FB_Archive {
 		
-		static private $classobj;
+		protected static $classobj;
 		
 		/*
 		 * Key for textdomain
 		 * 
 		 * @var string
 		 */
-		public $textdomain = 'archive';
+		public static $textdomain = 'archive';
 		
 		/*
 		 * Key for custom post type
@@ -133,8 +133,8 @@ if ( ! class_exists( 'FB_Archive' ) ) {
 		public function __construct () {
 			
 			// include settings on profile
-			//require_once dirname( __FILE__ ) . DIRECTORY_SEPARATOR . 'inc/class.settings.php';
-			//$fb_archive_settings = FB_Archive_Settings :: get_object();
+			require_once dirname( __FILE__ ) . DIRECTORY_SEPARATOR . 'inc/class.settings.php';
+			$fb_archive_settings = FB_Archive_Settings :: get_object();
 			
 			// for  WP 3.1 and higher
 			//add_filter( 'site_transient_update_plugins', array( &$this, 'remove_update_nag' ) );
@@ -181,9 +181,9 @@ if ( ! class_exists( 'FB_Archive' ) ) {
 		 * @since   0.0.2
 		 * @return  string
 		 */
-		public function get_textdomain() {
+		public static function get_textdomain() {
 			
-			return $this -> textdomain;
+			return self::$textdomain;
 		}
 		
 		
@@ -194,7 +194,7 @@ if ( ! class_exists( 'FB_Archive' ) ) {
 		 * @since 0.0.1
 		 * @return object
 		 */
-		public function get_object () {
+		public static function get_object () {
 			
 			if ( FALSE === self :: $classobj )
 				self :: $classobj = new self;
@@ -213,7 +213,7 @@ if ( ! class_exists( 'FB_Archive' ) ) {
 		 */
 		public function localize_plugin () {
 			
-			load_plugin_textdomain( $this->textdomain, FALSE, dirname( plugin_basename(__FILE__) ) . '/languages' );
+			load_plugin_textdomain( self::$textdomain, FALSE, dirname( plugin_basename(__FILE__) ) . '/languages' );
 		}
 		
 		
@@ -229,10 +229,19 @@ if ( ! class_exists( 'FB_Archive' ) ) {
 		 */
 		public function get_plugin_data( $value = 'Version' ) {
 			
-			$plugin_data = get_plugin_data( __FILE__ );
+			static $plugin_data = array ();
+			
+			// fetch the data just once.
+			if ( isset( $plugin_data[ $value ] ) )
+				return $plugin_data[ $value ];
+			
+			if ( ! function_exists( 'get_plugin_data' ) )
+				require_once( ABSPATH . '/wp-admin/includes/plugin.php' );
+			
+			$plugin_data  = get_plugin_data( __FILE__ );
 			$plugin_value = $plugin_data[$value];
 			
-			return $plugin_value;
+			return empty ( $plugin_data[ $value ] ) ? '' : $plugin_data[ $value ];
 		}
 		
 		
@@ -253,8 +262,8 @@ if ( ! class_exists( 'FB_Archive' ) ) {
 				die( 
 					wp_sprintf( 
 						'<strong>%s:</strong> ' . 
-						__( 'Sorry, This plugin requires WordPress 3.0+', $this->textdomain )
-						, self::get_plugin_data('Name' )
+						__( 'Sorry, This plugin requires WordPress 3.0+', self::$textdomain )
+						, self::get_plugin_data( 'Name' )
 					)
 				);
 			}
@@ -265,8 +274,8 @@ if ( ! class_exists( 'FB_Archive' ) ) {
 				die( 
 					wp_sprintf(
 						'<strong>%1s:</strong> ' . 
-						__( 'Sorry, This plugin has taken a bold step in requiring PHP 5.0+, Your server is currently running PHP %2s, Please bug your host to upgrade to a recent version of PHP which is less bug-prone. At last count, <strong>over 80%% of WordPress installs are using PHP 5.2+</strong>.', $this->textdomain )
-						, self::get_plugin_data('Name' ), PHP_VERSION 
+						__( 'Sorry, This plugin has taken a bold step in requiring PHP 5.0+, Your server is currently running PHP %2s, Please bug your host to upgrade to a recent version of PHP which is less bug-prone. At last count, <strong>over 80%% of WordPress installs are using PHP 5.2+</strong>.', self::$textdomain )
+						, self::get_plugin_data( 'Name' ), PHP_VERSION 
 					)
 				);
 			}
@@ -426,7 +435,7 @@ if ( ! class_exists( 'FB_Archive' ) ) {
 			if ( $this->post_type_1 == $post_type ) {
 				// add meta box with ID
 				add_meta_box( 'id',
-					__( 'Archive Info', $this->textdomain ),
+					__( 'Archive Info', self::$textdomain ),
 					array( &$this, 'additional_meta_box' ),
 					$this->post_type_1, 'side', 'high'
 				);
@@ -513,8 +522,8 @@ if ( ! class_exists( 'FB_Archive' ) ) {
 			
 			$actions['archive'] = '<a href="' . $this->get_archive_post_link( $post->ID ) 
 				. '" title="'
-				. esc_attr( __( 'Move this item to the Archive', $this->textdomain  ) ) 
-				. '">' . __( 'Archive', $this->textdomain  ) . '</a>';
+				. esc_attr( __( 'Move this item to the Archive', self::$textdomain  ) ) 
+				. '">' . __( 'Archive', self::$textdomain  ) . '</a>';
 			
 			return $actions;
 		}
@@ -541,9 +550,9 @@ if ( ! class_exists( 'FB_Archive' ) ) {
 				$archived_post_type = get_post_meta( $id->ID, $this->post_meta_key, TRUE );
 				$actions['archive'] = '<a href="' . $this->get_unset_archive_post_link( $post->ID ) 
 					. '&on_archive=1" title="'
-					. esc_attr( __( 'Move this item to the archived post type', $this->textdomain ) ) 
+					. esc_attr( __( 'Move this item to the archived post type', self::$textdomain ) ) 
 					. ': ' . $archived_post_type
-					. '">' . __( 'Restore to', $this->textdomain  ) . ' <code>' . $archived_post_type . '</code></a>';
+					. '">' . __( 'Restore to', self::$textdomain  ) . ' <code>' . $archived_post_type . '</code></a>';
 			}
 			
 			return $actions;
@@ -562,7 +571,7 @@ if ( ! class_exists( 'FB_Archive' ) ) {
 		 */
 		public function get_archive_post_link( $id = 0 ) {
 			
-			if ( ! $post = &get_post( $id ) )
+			if ( ! $post = get_post( $id ) )
 				return;
 			
 			$post_type_object = get_post_type_object( $post->post_type );
@@ -594,14 +603,14 @@ if ( ! class_exists( 'FB_Archive' ) ) {
 		 */
 		public function get_unset_archive_post_link( $id = 0 ) {
 			
-			if ( !$post = &get_post( $id ) )
+			if ( ! $post = get_post( $id ) )
 				return;
 		
 			$post_type_object = get_post_type_object( $post->post_type );
-			if ( !$post_type_object )
+			if ( ! $post_type_object )
 				return;
 			
-			if ( !current_user_can( $post_type_object->cap->delete_post, $post->ID ) )
+			if ( ! current_user_can( $post_type_object->cap->delete_post, $post->ID ) )
 				return;
 			
 			$action = NULL;
@@ -617,7 +626,7 @@ if ( ! class_exists( 'FB_Archive' ) ) {
 		
 		public function filter_bulk_actions( $actions ) {
 			
-			$actions['restore_archive'] = __( 'Restore to Post Type', $this->textdomain );
+			$actions['restore_archive'] = __( 'Restore to Post Type', self::$textdomain );
 			return $actions;
 		}
 		
@@ -636,7 +645,7 @@ if ( ! class_exists( 'FB_Archive' ) ) {
 				isset( $_GET['post']) || 
 				( isset( $_REQUEST['action']) && 'archive' == $_REQUEST['action'] ) 
 			) ) {
-				wp_die( __( 'No post to archive has been supplied!', $this->textdomain ) );
+				wp_die( __( 'No post to archive has been supplied!', self::$textdomain ) );
 			}
 			
 			$id = (int) ( isset( $_GET['post']) ? $_GET['post'] : $_REQUEST['post']);
@@ -653,7 +662,7 @@ if ( ! class_exists( 'FB_Archive' ) ) {
 				wp_redirect( admin_url( 'edit.php?' . $redirect_post_type . 'archived=1&ids=' . $id ) );
 				exit;
 			} else {
-				wp_die( __( 'Sorry, i cant find the post-id', $this->textdomain ) );
+				wp_die( __( 'Sorry, i cant find the post-id', self::$textdomain ) );
 			}
 		
 		}
@@ -673,7 +682,7 @@ if ( ! class_exists( 'FB_Archive' ) ) {
 				isset( $_GET['post']) || 
 				( isset( $_REQUEST['action']) && 'unset_archive' == $_REQUEST['action'] ) 
 			) ) {
-				wp_die( __('No item to undo archive has been supplied!', $this->textdomain ) );
+				wp_die( __('No item to undo archive has been supplied!', self::$textdomain ) );
 			}
 			
 			$id = (int) ( isset( $_GET['post']) ? $_GET['post'] : $_REQUEST['post']);
@@ -692,7 +701,7 @@ if ( ! class_exists( 'FB_Archive' ) ) {
 				wp_redirect( admin_url( 'edit.php?' . $redirect_post_type . 'unset_archived=1&ids=' . $id ) );
 				exit;
 			} else {
-				wp_die( __( 'Sorry, i cant find the post-id', $this->textdomain ) );
+				wp_die( __( 'Sorry, i cant find the post-id', self::$textdomain ) );
 			}
 		
 		}
@@ -772,7 +781,7 @@ if ( ! class_exists( 'FB_Archive' ) ) {
 					_n( 'Item moved to the Archive.', 
 					'%s items moved to the Archive.', 
 					$_REQUEST['archived'], 
-					'', $this->textdomain ), 
+					'', self::$textdomain ), 
 					number_format_i18n( $_REQUEST['archived'] ) 
 				);
 				$ids = isset( $_REQUEST['ids']) ? $_REQUEST['ids'] : 0;
@@ -784,7 +793,7 @@ if ( ! class_exists( 'FB_Archive' ) ) {
 					_n( 'Item moved to the Post Type: %2$s.', 
 					'%1$s items moved to the Post Types: %2$s.', 
 					$_REQUEST['unset_archived'], 
-					'', $this->textdomain ), 
+					'', self::$textdomain ), 
 					number_format_i18n( $_REQUEST['unset_archived'] ),
 					'<code>' . get_post_type( $_REQUEST['ids'] ) . '</code>'
 				);
@@ -836,9 +845,9 @@ if ( ! class_exists( 'FB_Archive' ) ) {
 		public function additional_meta_box( $data ) {
 				
 			if ( $data->ID ) {
-				echo '<p>' . __( 'ID of this archived item:', $this->textdomain ) 
+				echo '<p>' . __( 'ID of this archived item:', self::$textdomain ) 
 					. ' <code>' . $data->ID . '</code></p>';
-				echo '<p>' . __( 'Archived Post Type:', $this->textdomain ) 
+				echo '<p>' . __( 'Archived Post Type:', self::$textdomain ) 
 					. ' <code>' . get_post_meta( $data->ID, $this->post_meta_key, TRUE ) . '</code></p>';
 				
 			}
@@ -857,17 +866,17 @@ if ( ! class_exists( 'FB_Archive' ) ) {
 			
 			// labels for return post type Snippet
 			$labels = array(
-				'name'               => __( 'Archive', $this->textdomain ),
-				'singular_name'      => __( 'Archive', $this->textdomain ),
-				'add_new'            => __( 'Add New', $this->textdomain ),
-				'add_new_item'       => __( 'Add New Item', $this->textdomain ),
-				'edit_item'          => __( 'Edit Item', $this->textdomain ),
-				'new_item'           => __( 'New Item in Archive', $this->textdomain ),
-				'view_item'          => __( 'View Item', $this->textdomain ),
-				'search_items'       => __( 'Search in Archive', $this->textdomain ),
-				'not_found'          => __( 'No item found in Archive', $this->textdomain ),
-				'not_found_in_trash' => __( 'No item found in Archive-Trash', $this->textdomain ),
-				'parent_item_colon'  => __( 'Parent item in Archive', $this->textdomain )
+				'name'               => __( 'Archive', self::$textdomain ),
+				'singular_name'      => __( 'Archive', self::$textdomain ),
+				'add_new'            => __( 'Add New', self::$textdomain ),
+				'add_new_item'       => __( 'Add New Item', self::$textdomain ),
+				'edit_item'          => __( 'Edit Item', self::$textdomain ),
+				'new_item'           => __( 'New Item in Archive', self::$textdomain ),
+				'view_item'          => __( 'View Item', self::$textdomain ),
+				'search_items'       => __( 'Search in Archive', self::$textdomain ),
+				'not_found'          => __( 'No item found in Archive', self::$textdomain ),
+				'not_found_in_trash' => __( 'No item found in Archive-Trash', self::$textdomain ),
+				'parent_item_colon'  => __( 'Parent item in Archive', self::$textdomain )
 			);
 			
 			 /**
@@ -906,7 +915,7 @@ if ( ! class_exists( 'FB_Archive' ) ) {
 			
 			$args = array(
 				'labels'             => $labels,
-				'description'        => __( 'Archive post, pages and other post types to a Archive.', $this->textdomain ),
+				'description'        => __( 'Archive post, pages and other post types to a Archive.', self::$textdomain ),
 				'public'             => TRUE,
 				'publicly_queryable' => TRUE, 
 				'exclude_from_search'=> TRUE, 
@@ -991,14 +1000,14 @@ if ( ! class_exists( 'FB_Archive' ) ) {
 		 */
 		public function add_columns( $columns) {
 			// add id list
-			$columns['aid'] = __( 'ID', $this->textdomain );
+			$columns['aid'] = __( 'ID', self::$textdomain );
 			/*
 			// remove author list
 			//unset( $columns['author']);
 			// add structure tax
 			$this->array_insert( $columns, 
 				2, 
-				array( $this->taxonomy_type_1 => __( 'Structures', $this->textdomain ) )
+				array( $this->taxonomy_type_1 => __( 'Structures', self::$textdomain ) )
 			); */
 			
 			return $columns;
@@ -1026,7 +1035,7 @@ if ( ! class_exists( 'FB_Archive' ) ) {
 					if ( isset( $taxonomys[0]) )
 						$structure = $taxonomys;
 					else
-						$structure = __( 'No', $this->textdomain ) . $this->taxonomy_type_1;
+						$structure = __( 'No', self::$textdomain ) . $this->taxonomy_type_1;
 					$value = $structure;
 					break;
 				case 'aid':
@@ -1128,7 +1137,7 @@ if ( ! class_exists( 'FB_Archive' ) ) {
 			
 			$contextual_help = 
 				'<p>' . 
-				__( 'Archive - maybe later an help for this plugin', $this -> textdomain ) . 
+				__( 'Archive - maybe later an help for this plugin', self::$textdomain ) . 
 				'</p>' . "\n";
 			
 			return $contextual_help;
@@ -1180,7 +1189,7 @@ if ( ! class_exists( 'FB_Archive' ) ) {
 			) );
 			
 			if ( ! is_numeric($count) )
-				$message = wp_sprintf( __( 'The Snippet %s is non integer value or the title of this Snippet!', $this->textdomain ), esc_html($id) );
+				$message = wp_sprintf( __( 'The Snippet %s is non integer value or the title of this Snippet!', self::$textdomain ), esc_html($id) );
 			
 			if ( ! empty($message) && current_user_can('read') ) {
 				$message = '<div id="message" class="error fade" style="background:red;"><p>' . $message . '</p></div>';
@@ -1241,4 +1250,3 @@ if ( ! class_exists( 'FB_Archive' ) ) {
 	$fb_archive = new FB_Archive();
 	
 } // end if class
-?>

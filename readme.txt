@@ -2,7 +2,7 @@
 Contributors: Bueltge, inpsyde
 Tags: post, custom post type, archive
 Requires at least: 3.0
-Tested up to: 3.5-Beta3
+Tested up to: 3.9
 Stable tag: 0.0.4
 
 Archive your post types, also possible with cron and list via shortcode on frontend.
@@ -68,4 +68,3 @@ The plugin comes with various translations, please refer to the [WordPress Codex
 
 = 0.0.1 =
 * Release first version
-

@@ -4,7 +4,7 @@
 	background: transparent url('../images/server_m.png') no-repeat scroll 4px 5px;
 }
 #adminmenu #menu-posts-archiv:hover div.wp-menu-image,
-adminmenu #menu-posts-archiv.wp-has-current-submenu div.wp-menu-image {
+#adminmenu #menu-posts-archiv.wp-menu-menu div.wp-menu-image {
 	background: transparent url('../images/server_h.png') no-repeat scroll 4px 5px;
 }
 
