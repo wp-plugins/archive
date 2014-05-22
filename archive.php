@@ -7,9 +7,9 @@
  * Description: Archive your post types, also with cron and customize all via Settings page.
  * Author: Frank Bültge
  * Version: 0.0.5
- * Licence: GPLv2
+ * Licence: GPLv2+
  * Author URI: http://bueltge.de
- * Last Change: 15.07.2011
+ * Last Change: 05/22/2014
  */
 
 /**
@@ -133,8 +133,8 @@ if ( ! class_exists( 'FB_Archive' ) ) {
 		public function __construct () {
 			
 			// include settings on profile
-			require_once dirname( __FILE__ ) . DIRECTORY_SEPARATOR . 'inc/class.settings.php';
-			$fb_archive_settings = FB_Archive_Settings :: get_object();
+			//require_once dirname( __FILE__ ) . DIRECTORY_SEPARATOR . 'inc/class.settings.php';
+			//$fb_archive_settings = FB_Archive_Settings :: get_object();
 			
 			// for  WP 3.1 and higher
 			//add_filter( 'site_transient_update_plugins', array( &$this, 'remove_update_nag' ) );
@@ -544,7 +544,7 @@ if ( ! class_exists( 'FB_Archive' ) ) {
 			
 			$post_type_object = get_post_type_object( $post->post_type );
 			
-			if ( in_array( $current_screen->id, $this->def_unset_screens ) 
+			if ( isset( $current_screen->id ) && in_array( $current_screen->id, $this->def_unset_screens ) 
 				 && current_user_can( $post_type_object->cap->delete_post, $post->ID )
 				) {
 				$archived_post_type = get_post_meta( $id->ID, $this->post_meta_key, TRUE );
