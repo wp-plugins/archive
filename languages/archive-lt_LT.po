@@ -1,0 +1,202 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: \n"
+"PO-Revision-Date: \n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Poedit-SourceCharset: utf-8\n"
+"X-Poedit-KeywordsList: __;_e;__ngettext:1,2;_n:1,2;__ngettext_noop:1,2;_n_noop:1,2;_c,_nc:4c,1,2;_x:1,2c;_ex:1,2c;_nx:4c,1,2;_nx_noop:4c,1,2\n"
+"X-Textdomain-Support: yes\n"
+"X-Poedit-SearchPath-0: .\n"
+
+#@ archive
+#. translators: plugin header field 'Name'
+#: archive.php:0
+#: archive.php:504
+#: archive.php:847
+#: archive.php:848
+msgid "Archive"
+msgstr "Archyvas"
+
+#@ archive
+#. translators: plugin header field 'PluginURI'
+#: archive.php:0
+msgid "http://premium.bueltge.de/"
+msgstr "http://premium.bueltge.de/"
+
+#@ archive
+#. translators: plugin header field 'Author'
+#: archive.php:0
+msgid "Frank Bültge"
+msgstr "Frank Bültge"
+
+#@ archive
+#. translators: plugin header field 'AuthorURI'
+#: archive.php:0
+msgid "http://bueltge.de"
+msgstr "http://bueltge.de"
+
+#@ archive
+#: archive.php:243
+msgid "Sorry, This plugin requires WordPress 3.0+"
+msgstr "Šiam papildiniui reikalinga WordPress 3.0+ platforma"
+
+#@ archive
+#: archive.php:255
+#, php-format
+msgid "Sorry, This plugin has taken a bold step in requiring PHP 5.0+, Your server is currently running PHP %2s, Please bug your host to upgrade to a recent version of PHP which is less bug-prone. At last count, <strong>over 80%% of WordPress installs are using PHP 5.2+</strong>."
+msgstr "Šis papildinys nesvarstęs reikalauja PHP 5.0+. Jūsų serveryje šiuo metu naudojama PHP %2s, reikalaukite savo svetainės talpinimo paslaugų tiekėjo atnaujinti naudojamą PHP kalbos versiją į ne tokią defektuotą. Svarbu žinoti, jog <strong> daugiau nei 80% WordPress įdiegimų naudoja PHP 5.2, arba naujesnę versiją</strong>."
+
+#@ archive
+#: archive.php:416
+msgid "Archive Info"
+msgstr "Archyvo Informacija"
+
+#@ archive
+#: archive.php:503
+msgid "Move this item to the Archive"
+msgstr "Perkelti šiuos elementus į Archyvą"
+
+#@ archive
+#: archive.php:531
+msgid "Move this item to the archived post type"
+msgstr "Perkelti šiuos elementus į archyvinį įrašo tipą"
+
+#@ archive
+#: archive.php:533
+msgid "Restore to"
+msgstr "Atkurti į"
+
+#@ archive
+#: archive.php:626
+msgid "No post to archive has been supplied!"
+msgstr "Į archyvą nebuvo persiųstas joks įrašas!"
+
+#@ archive
+#: archive.php:643
+#: archive.php:682
+msgid "Sorry, i cant find the post-id"
+msgstr "Atleiskite, negaliu surasti įrašo identifikatoriaus"
+
+#: archive.php:759
+#, php-format
+msgid "Item moved to the Archive."
+msgid_plural "%s items moved to the Archive."
+msgstr[0] "Elementas perkeltas į Archyvą."
+msgstr[1] "Elementai perkelti į Archyvą."
+
+#@ default
+#: archive.php:766
+msgid "Undo"
+msgstr "Atšaukti"
+
+#: archive.php:771
+#, php-format
+msgid "Item moved to the Post Type: %2$s."
+msgid_plural "%1$s items moved to the Post Types: %2$s."
+msgstr[0] "Elementas perkeltas į Įrašo Tipą: %2$s."
+msgstr[1] "Elementai perkelti į Įrašų Tipą:%2$s."
+
+#@ archive
+#: archive.php:828
+msgid "Archived Post Type:"
+msgstr "Archyvuoto Įrašo Tipas:"
+
+#@ archive
+#: archive.php:849
+msgid "Add New"
+msgstr "Pridėti Naują"
+
+#@ archive
+#: archive.php:981
+msgid "ID"
+msgstr "Identifikatorius"
+
+#@ archive
+#. translators: plugin header field 'Description'
+#: archive.php:0
+msgid "Archive your post types, also with cron."
+msgstr "Archyvuokite Jūsų sukurtus įrašų tipus, taip pat planuotoju."
+
+#@ archive
+#: archive.php:607
+msgid "Restore to Post Type"
+msgstr "Atkurti į Įrašų Tipus"
+
+#@ archive
+#: archive.php:1118
+msgid "Archive - maybe later an help for this plugin"
+msgstr "Archyvuokite - galbūt vėliau šio papildinio pagalba"
+
+#@ archive
+#: archive.php:826
+msgid "ID of this archived item:"
+msgstr "Šio archyvuoto elemento identifikatorius:"
+
+#@ archive
+#: archive.php:1016
+msgid "No"
+msgstr "Ne"
+
+#@ archive
+#: archive.php:850
+msgid "Add New Item"
+msgstr "Pridėti Naują Elementą"
+
+#@ archive
+#: archive.php:851
+msgid "Edit Item"
+msgstr "Redaguoti Elementą"
+
+#@ archive
+#: archive.php:852
+msgid "New Item in Archive"
+msgstr "Naujas Elementas Archyve"
+
+#@ archive
+#: archive.php:853
+msgid "View Item"
+msgstr "Peržiūrėti Elementą"
+
+#@ archive
+#: archive.php:854
+msgid "Search in Archive"
+msgstr "Paieška Archyve"
+
+#@ archive
+#: archive.php:855
+msgid "No item found in Archive"
+msgstr "Joks elementas Archyve nerastas"
+
+#@ archive
+#: archive.php:856
+msgid "No item found in Archive-Trash"
+msgstr "Joks Elementas nerastas Archyve-Šiukšlyne"
+
+#@ archive
+#: archive.php:857
+msgid "Parent item in Archive"
+msgstr "Viršelementis Archyve"
+
+#@ archive
+#: archive.php:663
+msgid "No item to undo archive has been supplied!"
+msgstr "Iš archyvo nebuvo atšauktas joks elementas!"
+
+#@ archive
+#: archive.php:896
+msgid "Archive post, pages and other post types to a Archive."
+msgstr "Pasiūsti įrašą, puslapi ar kitokį įrašo tipą į Archyvą."
+
+#@ archive
+#. translators: plugin header field 'Version'
+#: archive.php:0
+msgid "0.0.3"
+msgstr "0.0.3"
+
