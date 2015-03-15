@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Archive
  * Description: Archive your post types, also with cron.
- * Version:     1.0.0
+ * Version:     1.0.1
  * Plugin URI:  https://github.com/bueltge/Archive
  * Text Domain: archive
  * Domain Path: /languages
@@ -10,16 +10,28 @@
  * Author URI:  http://bueltge.de/
  * Licence:     GPLv2+
  * License URI: ./license.txt
- * Last Change: 2015-01-18
+ *
+ * Php Version 5.3
+ *
+ * @package WordPress
+ * @author  Frank Bültge <f.bueltge@inpsyde.com>
+ * @license http://opensource.org/licenses/gpl-license.php GNU Public License
+ * @version 2015-03-12
  */
-
-! defined( 'ABSPATH' ) and exit;
 
 /**
- * init class with plugin
+ * Don't call this file directly.
  */
-add_action( 'plugins_loaded', array( 'FB_Archive', 'get_object' ) );
+defined( 'ABSPATH' ) || die();
 
+add_action( 'plugins_loaded', array( 'FB_Archive', 'get_object' ) );
+register_activation_hook( __FILE__, array( 'FB_Archive', 'on_activate' ) );
+register_deactivation_hook( __FILE__, array( 'FB_Archive', 'on_deactivate' ) );
+register_uninstall_hook( __FILE__, array( 'FB_Archive', 'on_deactivate' ) );
+
+/**
+ * Class FB_Archive
+ */
 class FB_Archive {
 
 	static protected $classobj = NULL;
@@ -36,22 +48,33 @@ class FB_Archive {
 	 *
 	 * @var string
 	 */
-	public $post_type_1 = 'archiv';
+	static public $post_type_1 = 'archiv';
 
 	/*
 	 * Key for custom taxonomy
 	 *
 	 * @var string
 	 */
-	public $taxonomy_type_1 = 'archive_structure';
+	static public $taxonomy_type_1 = 'archive_structure';
 
-	// set capabilities on roles
-	public $todo_roles = array(
+	/**
+	 * Roles for edit, create custom post type
+	 *
+	 * @var array
+	 */
+	static public $todo_roles = array(
 		'administrator',
 		'editor',
 	);
 
-	public $read_roles = array(
+	/**
+	 * Roles to read post type
+	 *
+	 * @var array
+	 */
+	static public $read_roles = array(
+		'administrator',
+		'editor',
 		'author',
 		'contributor',
 		'subscriber',
@@ -69,11 +92,14 @@ class FB_Archive {
 	 * Add Screen Id or not an array for view link on all screens
 	 *
 	 * @see http://codex.wordpress.org/Plugin_API/Admin_Screen_Reference
+	 * @var array
 	 */
 	public $def_archive_screens = array( 'edit-post', 'edit-page' );
 
 	/**
 	 * Keys for view undo-archive-link on defined screens
+	 *
+	 * @var array
 	 */
 	public $def_unset_screens = array( 'edit-archiv' );
 
@@ -137,11 +163,6 @@ class FB_Archive {
 
 		// load language file
 		$this->localize_plugin();
-
-		// on activation of the plugin add cap to roles
-		register_activation_hook( __FILE__, array( $this, 'on_activate' ) );
-		// on uninstall remove capability from roles
-		register_uninstall_hook( __FILE__, array( 'FB_Archive', 'on_deactivate' ) );
 
 		// add post type
 		add_action( 'init', array( $this, 'build_post_type' ) );
@@ -240,7 +261,7 @@ class FB_Archive {
 	 * @since  0.0.1
 	 * @return void
 	 */
-	public function on_activate() {
+	static public function on_activate() {
 
 		global $wp_roles, $wp_version;
 
@@ -250,7 +271,7 @@ class FB_Archive {
 			die(
 			wp_sprintf(
 				'<strong>%s:</strong> ' .
-				__( 'Sorry, This plugin requires WordPress 3.0+', self::$textdomain )
+				esc_attr__( 'Sorry, This plugin requires WordPress 3.0+', self::$textdomain )
 				, self::get_plugin_data( 'Name' )
 			)
 			);
@@ -262,7 +283,7 @@ class FB_Archive {
 			die(
 			wp_sprintf(
 				'<strong>%1s:</strong> ' .
-				__(
+				esc_attr__(
 					'Sorry, This plugin has taken a bold step in requiring PHP 5.0+, Your server is currently running PHP %2s, Please bug your host to upgrade to a recent version of PHP which is less bug-prone. At last count, <strong>over 80%% of WordPress installs are using PHP 5.2+</strong>.',
 					self::$textdomain
 				)
@@ -271,21 +292,28 @@ class FB_Archive {
 			);
 		}
 
-		foreach ( $this->todo_roles as $role ) {
-			$wp_roles->add_cap( $role, 'edit_' . $this->post_type_1 );
-			$wp_roles->add_cap( $role, 'edit_' . $this->post_type_1 . 's' );
-			$wp_roles->add_cap( $role, 'edit_others_' . $this->post_type_1 . 's' );
-			$wp_roles->add_cap( $role, 'publish_' . $this->post_type_1 . 's' );
-			$wp_roles->add_cap( $role, 'read_' . $this->post_type_1 );
-			$wp_roles->add_cap( $role, 'read_private_' . $this->post_type_1 . 's' );
-			$wp_roles->add_cap( $role, 'delete_' . $this->post_type_1 );
-			$wp_roles->add_cap( $role, 'manage_' . $this->taxonomy_type_1 );
+		foreach ( self::$todo_roles as $role ) {
+			$wp_roles->add_cap( $role, 'edit_' . self::$post_type_1 );
+			$wp_roles->add_cap( $role, 'read_' . self::$post_type_1 );
+			$wp_roles->add_cap( $role, 'delete_' . self::$post_type_1 );
+			$wp_roles->add_cap( $role, 'edit_' . self::$post_type_1 . 's' );
+			$wp_roles->add_cap( $role, 'edit_others_' . self::$post_type_1 . 's' );
+			$wp_roles->add_cap( $role, 'publish_' . self::$post_type_1 . 's' );
+			$wp_roles->add_cap( $role, 'read_private_' . self::$post_type_1 . 's' );
+			$wp_roles->add_cap( $role, 'delete_' . self::$post_type_1 . 's' );
+			$wp_roles->add_cap( $role, 'delete_private_' . self::$post_type_1 . 's' );
+			$wp_roles->add_cap( $role, 'delete_published_' . self::$post_type_1 . 's' );
+			$wp_roles->add_cap( $role, 'delete_others_' . self::$post_type_1 . 's' );
+			$wp_roles->add_cap( $role, 'edit_private_' . self::$post_type_1 . 's' );
+			$wp_roles->add_cap( $role, 'edit_published_' . self::$post_type_1 . 's' );
+			$wp_roles->add_cap( $role, 'manage_' . self::$taxonomy_type_1 );
+			$wp_roles->add_cap( $role, 'edit_' . self::$taxonomy_type_1 );
+			$wp_roles->add_cap( $role, 'delete_' . self::$taxonomy_type_1 );
+			$wp_roles->add_cap( $role, 'assign_' . self::$taxonomy_type_1 );
 		}
 
-		foreach ( $this->read_roles as $role ) {
-			$wp_roles->add_cap( $role, 'read_' . $this->post_type_1 );
-			$wp_roles->add_cap( $role, 'read_' . $this->post_type_1 );
-			$wp_roles->add_cap( $role, 'read_' . $this->post_type_1 );
+		foreach ( self::$read_roles as $role ) {
+			$wp_roles->add_cap( $role, 'read_' . self::$post_type_1 );
 		}
 
 		flush_rewrite_rules();
@@ -299,27 +327,32 @@ class FB_Archive {
 	 * @since  0.0.1
 	 * @return void
 	 */
-	static function on_deactivate() {
-
-		$obj = FB_Archive::get_object();
+	static public function on_deactivate() {
 
 		global $wp_roles;
 
-		foreach ( $obj->todo_roles as $role ) {
-			$wp_roles->remove_cap( $role, 'edit_' . $obj->post_type_1 );
-			$wp_roles->remove_cap( $role, 'edit_' . $obj->post_type_1 . 's' );
-			$wp_roles->remove_cap( $role, 'edit_others_' . $obj->post_type_1 . 's' );
-			$wp_roles->remove_cap( $role, 'publish_' . $obj->post_type_1 . 's' );
-			$wp_roles->remove_cap( $role, 'read_' . $obj->post_type_1 );
-			$wp_roles->remove_cap( $role, 'read_private_' . $obj->post_type_1 . 's' );
-			$wp_roles->remove_cap( $role, 'delete_' . $obj->post_type_1 );
-			$wp_roles->remove_cap( $role, 'manage_' . $obj->taxonomy_type_1 );
+		foreach ( self::$todo_roles as $role ) {
+			$wp_roles->remove_cap( $role, 'edit_' . self::$post_type_1 );
+			$wp_roles->remove_cap( $role, 'read_' . self::$post_type_1 );
+			$wp_roles->remove_cap( $role, 'delete_' . self::$post_type_1 );
+			$wp_roles->remove_cap( $role, 'edit_' . self::$post_type_1 . 's' );
+			$wp_roles->remove_cap( $role, 'edit_others_' . self::$post_type_1 . 's' );
+			$wp_roles->remove_cap( $role, 'publish_' . self::$post_type_1 . 's' );
+			$wp_roles->remove_cap( $role, 'read_private_' . self::$post_type_1 . 's' );
+			$wp_roles->remove_cap( $role, 'delete_' . self::$post_type_1 . 's' );
+			$wp_roles->remove_cap( $role, 'delete_private_' . self::$post_type_1 . 's' );
+			$wp_roles->remove_cap( $role, 'delete_published_' . self::$post_type_1 . 's' );
+			$wp_roles->remove_cap( $role, 'delete_others_' . self::$post_type_1 . 's' );
+			$wp_roles->remove_cap( $role, 'edit_private_' . self::$post_type_1 . 's' );
+			$wp_roles->remove_cap( $role, 'edit_published_' . self::$post_type_1 . 's' );
+			$wp_roles->remove_cap( $role, 'manage_' . self::$taxonomy_type_1 );
+			$wp_roles->remove_cap( $role, 'edit_' . self::$taxonomy_type_1 );
+			$wp_roles->remove_cap( $role, 'delete_' . self::$taxonomy_type_1 );
+			$wp_roles->remove_cap( $role, 'assign_' . self::$taxonomy_type_1 );
 		}
 
-		foreach ( $obj->read_roles as $role ) {
-			$wp_roles->remove_cap( $role, 'read_' . $obj->post_type );
-			$wp_roles->remove_cap( $role, 'read_' . $obj->post_type );
-			$wp_roles->remove_cap( $role, 'read_' . $obj->post_type );
+		foreach ( self::$read_roles as $role ) {
+			$wp_roles->remove_cap( $role, 'read_' . self::$post_type_1 );
 		}
 
 		flush_rewrite_rules();
@@ -340,7 +373,7 @@ class FB_Archive {
 		add_action( 'admin_action_archive', array( $this, 'archive_post_type' ) );
 		add_action( 'admin_notices', array( $this, 'get_admin_notices' ) );
 		// modify bulk actions - current not possible in WP
-		//add_filter( 'bulk_actions-edit-' . $this->post_type_1, array( $this, 'filter_bulk_actions' ) );
+		//add_filter( 'bulk_actions-edit-' . self::$post_type_1, array( $this, 'filter_bulk_actions' ) );
 
 		add_filter( 'post_row_actions', array( $this, 'add_unset_archive_link' ), 10, 2 );
 		add_action( 'admin_action_unset_archive', array( $this, 'unset_archive_post_type' ) );
@@ -348,6 +381,8 @@ class FB_Archive {
 		$this->add_value_to_row();
 
 		add_action( 'add_meta_boxes', array( $this, 'add_meta_boxes' ) );
+
+		add_action( 'admin_head-edit.php', array( $this, 'add_custom_style' ) );
 	}
 
 	/**
@@ -368,7 +403,7 @@ class FB_Archive {
 		}
 
 		$screen = get_current_screen();
-		if ( $this->post_type_1 !== $screen->post_type ) {
+		if ( self::$post_type_1 !== $screen->post_type ) {
 			return NULL;
 		}
 
@@ -394,13 +429,29 @@ class FB_Archive {
 		// add meta box with ID
 		add_meta_box(
 			'id',
-			__( 'Archive Info', self::$textdomain ),
+			esc_attr__( 'Archive Info', self::$textdomain ),
 			array( $this, 'additional_meta_box' ),
-			$this->post_type_1,
+			self::$post_type_1,
 			'side', 'high'
 		);
 	}
 
+	/**
+	 * Add style value in head for ID column
+	 *
+	 * @since  2015-03-12
+	 * @return null
+	 */
+	public function add_custom_style() {
+
+		$screen = get_current_screen();
+
+		if ( 'edit-archiv' !== $screen->id )
+			return NULL;
+
+		$style = '<style type="text/css">#aid { width: 10%; }</style>';
+		echo $style;
+	}
 	/**
 	 * Schedule check
 	 *
@@ -451,8 +502,8 @@ class FB_Archive {
 
 		$actions[ 'archive' ] = '<a href="' . $this->get_archive_post_link( $id->ID )
 			. '" title="'
-			. esc_attr( __( 'Move this item to the Archive', self::$textdomain ) )
-			. '">' . __( 'Archive', self::$textdomain ) . '</a>';
+			. esc_attr__( 'Move this item to the Archive', self::$textdomain )
+			. '">' . esc_attr__( 'Archive', self::$textdomain ) . '</a>';
 
 		return $actions;
 	}
@@ -491,9 +542,9 @@ class FB_Archive {
 		$archived_post_type   = get_post_meta( $id->ID, $this->post_meta_key, TRUE );
 		$actions[ 'archive' ] = '<a href="' . $this->get_unset_archive_post_link( $id->ID )
 			. '&on_archive=1" title="'
-			. esc_attr( __( 'Move this item to the archived post type', self::$textdomain ) )
+			. esc_attr__( 'Move this item to the archived post type', self::$textdomain )
 			. ': ' . $archived_post_type
-			. '">' . __( 'Restore to', self::$textdomain ) . ' <code>' . $archived_post_type . '</code></a>';
+			. '">' . esc_attr__( 'Restore to', self::$textdomain ) . ' <code>' . $archived_post_type . '</code></a>';
 
 		return $actions;
 	}
@@ -575,7 +626,7 @@ class FB_Archive {
 
 	public function filter_bulk_actions( $actions ) {
 
-		$actions[ 'restore_archive' ] = __( 'Restore to Post Type', self::$textdomain );
+		$actions[ 'restore_archive' ] = esc_attr__( 'Restore to Post Type', self::$textdomain );
 
 		return $actions;
 	}
@@ -594,7 +645,7 @@ class FB_Archive {
 			isset( $_GET[ 'post' ] ) || ( isset( $_REQUEST[ 'action' ] ) && 'archive' == $_REQUEST[ 'action' ] )
 		)
 		) {
-			wp_die( __( 'No post to archive has been supplied!', self::$textdomain ) );
+			wp_die( esc_attr__( 'No post to archive has been supplied!', self::$textdomain ) );
 		}
 
 		$id = (int) ( isset( $_GET[ 'post' ] ) ? $_GET[ 'post' ] : $_REQUEST[ 'post' ] );
@@ -606,13 +657,13 @@ class FB_Archive {
 				$redirect_post_type = 'post_type=' . $archived_post_type . '&';
 			}
 			// change post type
-			set_post_type( $id, $this->post_type_1 );
+			set_post_type( $id, self::$post_type_1 );
 			// add old post_type to post meta
 			add_post_meta( $id, $this->post_meta_key, $archived_post_type, TRUE );
 			wp_redirect( admin_url( 'edit.php?' . $redirect_post_type . 'archived=1&ids=' . $id ) );
 			exit;
 		} else {
-			wp_die( __( "Sorry, I can't find the post-id", self::$textdomain ) );
+			wp_die( esc_attr__( "Sorry, I can't find the post-id", self::$textdomain ) );
 		}
 
 	}
@@ -631,7 +682,7 @@ class FB_Archive {
 			isset( $_GET[ 'post' ] ) || ( isset( $_REQUEST[ 'action' ] ) && 'unset_archive' == $_REQUEST[ 'action' ] )
 		)
 		) {
-			wp_die( __( 'No item to undo archive has been supplied!', self::$textdomain ) );
+			wp_die( esc_attr__( 'No item to undo archive has been supplied!', self::$textdomain ) );
 		}
 
 		$id = (int) ( isset( $_GET[ 'post' ] ) ? $_GET[ 'post' ] : $_REQUEST[ 'post' ] );
@@ -651,7 +702,7 @@ class FB_Archive {
 			wp_redirect( admin_url( 'edit.php?' . $redirect_post_type . 'unset_archived=1&ids=' . $id ) );
 			exit;
 		} else {
-			wp_die( __( 'Sorry, i cant find the post-id', self::$textdomain ) );
+			wp_die( esc_attr__( 'Sorry, i cant find the post-id', self::$textdomain ) );
 		}
 
 	}
@@ -705,7 +756,7 @@ class FB_Archive {
 			if ( $value[ 'ID' ] ) {
 				$archived_post_type = get_post_type( $value[ 'ID' ] );
 				// change post type
-				set_post_type( $value[ 'ID' ], $this->post_type_1 );
+				set_post_type( $value[ 'ID' ], self::$post_type_1 );
 				// add old post_type to post meta
 				add_post_meta( $value[ 'ID' ], $this->post_meta_key, $archived_post_type, TRUE );
 			}
@@ -740,9 +791,8 @@ class FB_Archive {
 				number_format_i18n( $_REQUEST[ 'archived' ] )
 			);
 			$ids              = isset( $_REQUEST[ 'ids' ] ) ? $_REQUEST[ 'ids' ] : 0;
-			$message_archived .= ' <a href="' . $this->get_unset_archive_post_link( $ids ) . '">' . __(
-					'Undo'
-				) . '</a>';
+			$message_archived .= ' <a href="' . $this->get_unset_archive_post_link( $ids ) . '">'
+				. esc_attr__( 'Undo' ) . '</a>';
 		}
 
 		if ( isset( $_REQUEST[ 'unset_archived' ] ) ) {
@@ -795,7 +845,7 @@ class FB_Archive {
 	 * Admin post meta contents
 	 *
 	 * @uses   get_post_meta
-	 * @ccess  public
+	 * @access  public
 	 * @since  0.0.1
 	 *
 	 * @param  array $data
@@ -805,9 +855,9 @@ class FB_Archive {
 	public function additional_meta_box( $data ) {
 
 		if ( $data->ID ) {
-			echo '<p>' . __( 'ID of this archived item:', self::$textdomain )
+			echo '<p>' . esc_attr__( 'ID of this archived item:', self::$textdomain )
 				. ' <code>' . $data->ID . '</code></p>';
-			echo '<p>' . __( 'Archived Post Type:', self::$textdomain )
+			echo '<p>' . esc_attr__( 'Archived Post Type:', self::$textdomain )
 				. ' <code>' . get_post_meta( $data->ID, $this->post_meta_key, TRUE ) . '</code></p>';
 
 		}
@@ -825,17 +875,17 @@ class FB_Archive {
 
 		// labels for return post type Snippet
 		$labels = array(
-			'name'               => __( 'Archive', self::$textdomain ),
-			'singular_name'      => __( 'Archive', self::$textdomain ),
-			'add_new'            => __( 'Add New', self::$textdomain ),
-			'add_new_item'       => __( 'Add New Item', self::$textdomain ),
-			'edit_item'          => __( 'Edit Item', self::$textdomain ),
-			'new_item'           => __( 'New Item in Archive', self::$textdomain ),
-			'view_item'          => __( 'View Item', self::$textdomain ),
-			'search_items'       => __( 'Search in Archive', self::$textdomain ),
-			'not_found'          => __( 'No item found in Archive', self::$textdomain ),
-			'not_found_in_trash' => __( 'No item found in Archive-Trash', self::$textdomain ),
-			'parent_item_colon'  => __( 'Parent item in Archive', self::$textdomain )
+			'name'               => esc_attr__( 'Archive', self::$textdomain ),
+			'singular_name'      => esc_attr__( 'Archive', self::$textdomain ),
+			'add_new'            => esc_attr__( 'Add New', self::$textdomain ),
+			'add_new_item'       => esc_attr__( 'Add New Item', self::$textdomain ),
+			'edit_item'          => esc_attr__( 'Edit Item', self::$textdomain ),
+			'new_item'           => esc_attr__( 'New Item in Archive', self::$textdomain ),
+			'view_item'          => esc_attr__( 'View Item', self::$textdomain ),
+			'search_items'       => esc_attr__( 'Search in Archive', self::$textdomain ),
+			'not_found'          => esc_attr__( 'No item found in Archive', self::$textdomain ),
+			'not_found_in_trash' => esc_attr__( 'No item found in Archive-Trash', self::$textdomain ),
+			'parent_item_colon'  => esc_attr__( 'Parent item in Archive', self::$textdomain )
 		);
 
 		/*
@@ -857,19 +907,19 @@ class FB_Archive {
 		 *
 		 */
 		$capabilities = array(
-			'edit_post'              => "edit_{$this->post_type_1}",
-			'read_post'              => "read_{$this->post_type_1}",
-			'delete_post'            => "delete_{$this->post_type_1}",
-			'edit_posts'             => "edit_{$this->post_type_1}s",
-			'edit_others_posts'      => "edit_others_{$this->post_type_1}s",
-			'publish_posts'          => "publish_{$this->post_type_1}s",
-			'read_private_posts'     => "read_private_{$this->post_type_1}s",
-			'delete_posts'           => "delete_{$this->post_type_1}s",
-			'delete_private_posts'   => "delete_private_{$this->post_type_1}s",
-			'delete_published_posts' => "delete_published_{$this->post_type_1}s",
-			'delete_others_posts'    => "delete_others_{$this->post_type_1}s",
-			'edit_private_posts'     => "edit_private_{$this->post_type_1}s",
-			'edit_published_posts'   => "edit_published_{$this->post_type_1}s",
+			'edit_post'              => 'edit_' . self::$post_type_1,
+			'read_post'              => 'read_' . self::$post_type_1,
+			'delete_post'            => 'delete_' . self::$post_type_1,
+			'edit_posts'             => 'edit_' . self::$post_type_1 . 's',
+			'edit_others_posts'      => 'edit_others_' . self::$post_type_1 . 's',
+			'publish_posts'          => 'publish_' . self::$post_type_1 . 's',
+			'read_private_posts'     => 'read_private_' . self::$post_type_1 . 's',
+			'delete_posts'           => 'delete_' . self::$post_type_1 . 's',
+			'delete_private_posts'   => 'delete_private_' . self::$post_type_1 . 's',
+			'delete_published_posts' => 'delete_published_' . self::$post_type_1 . 's',
+			'delete_others_posts'    => 'delete_others_' . self::$post_type_1 . 's',
+			'edit_private_posts'     => 'edit_private_' . self::$post_type_1 . 's',
+			'edit_published_posts'   => 'edit_published_' . self::$post_type_1 . 's',
 		);
 
 		/**
@@ -898,7 +948,7 @@ class FB_Archive {
 		 */
 		$args = array(
 			'labels'              => $labels,
-			'description'         => __(
+			'description'         => esc_attr__(
 				'Archive post, pages and other post types to a Archive.', self::$textdomain
 			),
 			'public'              => TRUE,
@@ -907,6 +957,7 @@ class FB_Archive {
 			'show_in_nav_menus'   => FALSE,
 			'menu_position'       => 22,
 			'menu_icon'           => 'dashicons-archive',
+			//'capability_type'     => 'post',
 			'capabilities'        => $capabilities,
 			'supports'            => array(
 				'title',
@@ -920,9 +971,9 @@ class FB_Archive {
 				'thumbnail',
 				'custom-fields',
 				'post-formats',
-				'page-attributes'
+				'page-attributes',
 			),
-			'taxonomies'          => array( 'category', 'post_tag', $this->taxonomy_type_1 ),
+			'taxonomies'          => array( 'category', 'post_tag', self::$taxonomy_type_1 ),
 			'has_archive'         => TRUE
 		);
 
@@ -931,7 +982,7 @@ class FB_Archive {
 		 */
 		$args = apply_filters( 'archive_post_type_arguments', $args );
 
-		register_post_type( $this->post_type_1, $args );
+		register_post_type( self::$post_type_1, $args );
 	}
 
 	/**
@@ -1004,7 +1055,7 @@ class FB_Archive {
 	public function add_columns( $columns ) {
 
 		// add id list
-		$columns[ 'aid' ] = __( 'ID', self::$textdomain );
+		$columns[ 'aid' ] = esc_attr__( 'ID', self::$textdomain );
 
 		/*
 		// remove author list
@@ -1012,7 +1063,7 @@ class FB_Archive {
 		// add structure tax
 		$this->array_insert( $columns,
 			2,
-			array( $this->taxonomy_type_1 => __( 'Structures', self::$textdomain ) )
+			array( self::$taxonomy_type_1 => esc_attr__( 'Structures', self::$textdomain ) )
 		); */
 
 		return $columns;
@@ -1035,12 +1086,12 @@ class FB_Archive {
 		$id = (int) $id;
 
 		switch ( $column_name ) {
-			case $this->taxonomy_type_1:
-				$taxonomys = get_the_term_list( $id, $this->taxonomy_type_1, '', ', ', '' );
+			case self::$taxonomy_type_1:
+				$taxonomys = get_the_term_list( $id, self::$taxonomy_type_1, '', ', ', '' );
 				if ( isset( $taxonomys[ 0 ] ) ) {
 					$structure = $taxonomys;
 				} else {
-					$structure = __( 'No', self::$textdomain ) . $this->taxonomy_type_1;
+					$structure = esc_attr__( 'No', self::$textdomain ) . self::$taxonomy_type_1;
 				}
 
 				$value = $structure;
@@ -1110,8 +1161,8 @@ class FB_Archive {
 	public function add_value_to_row() {
 
 		// on screen: edit-snippets
-		add_action( 'manage_edit-' . $this->post_type_1 . '_columns', array( &$this, 'add_columns' ) );
-		add_filter( 'manage_posts_custom_column', array( &$this, 'return_custom_columns' ), 10, 3 );
+		add_action( 'manage_edit-' . self::$post_type_1 . '_columns', array( $this, 'add_columns' ) );
+		add_filter( 'manage_posts_custom_column', array( $this, 'return_custom_columns' ), 10, 3 );
 	}
 
 	/**
@@ -1150,14 +1201,28 @@ class FB_Archive {
 	 */
 	public function add_help_text( $contextual_help, $screen_id, $screen ) {
 
-		if ( ! isset( $screen->post_type ) || $this->post_type_1 !== $screen->post_type ) {
+		if ( ! isset( $screen->post_type ) || self::$post_type_1 !== $screen->post_type ) {
 			return $contextual_help;
 		}
 
 		$contextual_help =
-			'<p>' .
-			__( 'Archive - maybe later an help for this plugin', self::$textdomain ) .
-			'</p>' . "\n";
+			'<p>' . esc_attr__( 'Archive your post types, also possible via cron; but only active via variable inside the php-file.', self::$textdomain )
+			. '<br>' . esc_attr__( 'Use the shortcode [archive] to list all posts from Archive with status publish to a page or post.', self::$textdomain )
+			. '<br>' . esc_attr__( 'The shortcode can use different params and use the follow defaults.', self::$textdomain )
+			. '</p><p><pre><code>' . "
+'count'         => -1, // count or -1 for all posts
+'category'      => '', // Show posts associated with certain categories.
+'tag'           => '', // Show posts associated with certain tags.
+'post_status'   => 'publish', // status or all for all posts
+'echo'          => 'true', // echo or give an array for use external
+'return_markup' => 'ul', // markup before echo title, content
+'title_markup'  => 'li', // markup before item
+'content'       => 'false', // view also content?
+'debug'         => 'false' // debug mor vor view an array
+" . '</code></pre></p>'
+			. '<p>' . esc_attr__( 'An example for use shortcode with params:', self::$textdomain )
+			. '<code>[archive count="10" content="true"]</code>'
+			. '</p>';
 
 		return $contextual_help;
 	}
@@ -1179,7 +1244,7 @@ class FB_Archive {
 		}
 
 		if ( ! isset( $query->query_vars[ 'suppress_filters' ] ) || FALSE == $query->query_vars[ 'suppress_filters' ] ) {
-			$query->set( 'post_type', array( 'post', $this->post_type_1 ) );
+			$query->set( 'post_type', array( 'post', self::$post_type_1 ) );
 		}
 
 		return $query;
@@ -1201,7 +1266,7 @@ class FB_Archive {
 		extract(
 			$a = shortcode_atts(
 				array(
-					'count'         => -1, // count or -1 for all posts
+					'count'         => - 1, // count or -1 for all posts
 					'category'      => '', // Show posts associated with certain categories.
 					'tag'           => '', // Show posts associated with certain tags.
 					'post_status'   => 'publish', // status or all for all posts
@@ -1215,7 +1280,7 @@ class FB_Archive {
 		);
 
 		$args = array(
-			'post_type'      => $this->post_type_1,
+			'post_type'      => self::$post_type_1,
 			'post_status'    => $a[ 'post_status' ],
 			'posts_per_page' => $a[ 'count' ],
 			'cat'            => $a[ 'category' ],
@@ -1253,6 +1318,7 @@ class FB_Archive {
 
 		}
 
+		wp_reset_postdata();
 		wp_reset_query();
 
 		$archived_posts = '<' . $a[ 'return_markup' ] . '>' . $archived_posts . '</' . $a[ 'return_markup' ] . '>';
