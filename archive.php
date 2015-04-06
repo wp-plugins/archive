@@ -1,8 +1,8 @@
-﻿<?php
+<?php # -*- coding: utf-8 -*-
 /**
  * Plugin Name: Archive
  * Description: Archive your post types, also with cron.
- * Version:     1.0.1
+ * Version:     1.0.2
  * Plugin URI:  https://github.com/bueltge/Archive
  * Text Domain: archive
  * Domain Path: /languages
@@ -16,7 +16,7 @@
  * @package WordPress
  * @author  Frank Bültge <f.bueltge@inpsyde.com>
  * @license http://opensource.org/licenses/gpl-license.php GNU Public License
- * @version 2015-03-12
+ * @version 2015-04-06
  */
 
 /**
@@ -123,6 +123,14 @@ class FB_Archive {
 	 * @var array
 	 */
 	public $scheduled_archiving_post_type = array( 'post' ); // example: 'post', 'page'
+
+	/**
+	 * Key for writing cache
+	 *
+	 * @since 2015-04-06
+	 * @var string
+	 */
+	public $cache_archived_posts = 'fb_archived_posts';
 
 	/**
 	 * Bool for add to query loop
@@ -268,27 +276,27 @@ class FB_Archive {
 		// check wp version
 		if ( ! version_compare( $wp_version, '3.0', '>=' ) ) {
 			deactivate_plugins( __FILE__ );
-			die(
-			wp_sprintf(
-				'<strong>%s:</strong> ' .
-				esc_attr__( 'Sorry, This plugin requires WordPress 3.0+', self::$textdomain )
-				, self::get_plugin_data( 'Name' )
-			)
+			wp_die(
+				wp_sprintf(
+					'<strong>%s:</strong> ' .
+					esc_attr__( 'Sorry, This plugin requires WordPress 3.0+', self::$textdomain )
+					, self::get_plugin_data( 'Name' )
+				)
 			);
 		}
 
 		// check php version
 		if ( version_compare( PHP_VERSION, '5.2.0', '<' ) ) {
-			deactivate_plugins( __FILE__ ); // Deactivate ourself
-			die(
-			wp_sprintf(
-				'<strong>%1s:</strong> ' .
-				esc_attr__(
-					'Sorry, This plugin has taken a bold step in requiring PHP 5.0+, Your server is currently running PHP %2s, Please bug your host to upgrade to a recent version of PHP which is less bug-prone. At last count, <strong>over 80%% of WordPress installs are using PHP 5.2+</strong>.',
-					self::$textdomain
+			deactivate_plugins( __FILE__ ); // Deactivate our self
+			wp_die(
+				wp_sprintf(
+					'<strong>%1s:</strong> ' .
+					esc_attr__(
+						'Sorry, This plugin has taken a bold step in requiring PHP 5.0+, Your server is currently running PHP %2s, Please bug your host to upgrade to a recent version of PHP which is less bug-prone. At last count, <strong>over 80%% of WordPress installs are using PHP 5.2+</strong>.',
+						self::$textdomain
+					)
+					, self::get_plugin_data( 'Name' ), PHP_VERSION
 				)
-				, self::get_plugin_data( 'Name' ), PHP_VERSION
-			)
 			);
 		}
 
@@ -428,7 +436,7 @@ class FB_Archive {
 
 		// add meta box with ID
 		add_meta_box(
-			'id',
+			'post_id',
 			esc_attr__( 'Archive Info', self::$textdomain ),
 			array( $this, 'additional_meta_box' ),
 			self::$post_type_1,
@@ -446,12 +454,14 @@ class FB_Archive {
 
 		$screen = get_current_screen();
 
-		if ( 'edit-archiv' !== $screen->id )
+		if ( 'edit-archiv' !== $screen->id ) {
 			return NULL;
+		}
 
 		$style = '<style type="text/css">#aid { width: 10%; }</style>';
 		echo $style;
 	}
+
 	/**
 	 * Schedule check
 	 *
@@ -663,7 +673,7 @@ class FB_Archive {
 			wp_redirect( admin_url( 'edit.php?' . $redirect_post_type . 'archived=1&ids=' . $id ) );
 			exit;
 		} else {
-			wp_die( esc_attr__( "Sorry, I can't find the post-id", self::$textdomain ) );
+			wp_die( esc_attr__( "Sorry, I can't find the post-post_id", self::$textdomain ) );
 		}
 
 	}
@@ -702,7 +712,7 @@ class FB_Archive {
 			wp_redirect( admin_url( 'edit.php?' . $redirect_post_type . 'unset_archived=1&ids=' . $id ) );
 			exit;
 		} else {
-			wp_die( esc_attr__( 'Sorry, i cant find the post-id', self::$textdomain ) );
+			wp_die( esc_attr__( 'Sorry, i cant find the post-post_id', self::$textdomain ) );
 		}
 
 	}
@@ -734,15 +744,21 @@ class FB_Archive {
 			$scheduled_archiving_post_types .= "'" . $item . "'" . ', ';
 		}
 		$scheduled_archiving_post_types = substr( $scheduled_archiving_post_types, 0, - strlen( ', ' ) );
-		$archived                       = $wpdb->get_results(
-			"SELECT ID
+		// Check for cache
+		$archived = wp_cache_get( $this->cache_archived_posts );
+		if ( FALSE === $archived ) {
+			$archived = $wpdb->get_results(
+				"SELECT ID
 				 FROM $wpdb->posts
 				 WHERE post_type IN ( $scheduled_archiving_post_types)
 				 AND post_date < '" . date(
-				'Y-m-d', strtotime( '-' . (int) $this->scheduled_archiving_days . ' days' )
-			) . "'",
-			ARRAY_A
-		);
+					'Y-m-d', strtotime( '-' . (int) $this->scheduled_archiving_days . ' days' )
+				) . "'",
+				ARRAY_A
+			);
+			// Write cache
+			wp_cache_set( $this->cache_archived_posts, $archived );
+		}
 
 		if ( is_wp_error( $archived ) ) {
 			return NULL;
@@ -785,8 +801,8 @@ class FB_Archive {
 				_n(
 					'Item moved to the Archive.',
 					'%s items moved to the Archive.',
-					$_REQUEST[ 'archived' ],
-					'', self::$textdomain
+					number_format_i18n( $_REQUEST[ 'archived' ] ),
+					self::$textdomain
 				),
 				number_format_i18n( $_REQUEST[ 'archived' ] )
 			);
@@ -801,7 +817,7 @@ class FB_Archive {
 					'Item moved to the Post Type: %2$s.',
 					'%1$s items moved to the Post Types: %2$s.',
 					$_REQUEST[ 'unset_archived' ],
-					'', self::$textdomain
+					self::$textdomain
 				),
 				number_format_i18n( $_REQUEST[ 'unset_archived' ] ),
 				'<code>' . get_post_type( $_REQUEST[ 'ids' ] ) . '</code>'
@@ -844,21 +860,22 @@ class FB_Archive {
 	/**
 	 * Admin post meta contents
 	 *
-	 * @uses   get_post_meta
+	 * @uses    get_post_meta
 	 * @access  public
-	 * @since  0.0.1
+	 * @since   0.0.1
 	 *
 	 * @param  array $data
 	 *
-	 * @return string markup with post-id
+	 * @return string markup with post-post_id
 	 */
 	public function additional_meta_box( $data ) {
 
 		if ( $data->ID ) {
+			$data_id = (int) $data->ID;
 			echo '<p>' . esc_attr__( 'ID of this archived item:', self::$textdomain )
-				. ' <code>' . $data->ID . '</code></p>';
+				. ' <code>' . $data_id . '</code></p>';
 			echo '<p>' . esc_attr__( 'Archived Post Type:', self::$textdomain )
-				. ' <code>' . get_post_meta( $data->ID, $this->post_meta_key, TRUE ) . '</code></p>';
+				. ' <code>' . get_post_meta( $data_id, $this->post_meta_key, TRUE ) . '</code></p>';
 
 		}
 	}
@@ -888,24 +905,6 @@ class FB_Archive {
 			'parent_item_colon'  => esc_attr__( 'Parent item in Archive', self::$textdomain )
 		);
 
-		/*
-		 * capabilities array
-		 *
-		 * [edit_post]              => "edit_{$capability_type}"
-		 * [read_post]              => "read_{$capability_type}"
-		 * [delete_post]            => "delete_{$capability_type}"
-		 * [edit_posts]             => "edit_{$capability_type}s"
-		 * [edit_others_posts]      => "edit_others_{$capability_type}s"
-		 * [publish_posts]          => "publish_{$capability_type}s"
-		 * [read_private_posts]     => "read_private_{$capability_type}s"
-		 * [delete_posts]           => "delete_{$capability_type}s"
-		 * [delete_private_posts]   => "delete_private_{$capability_type}s"
-		 * [delete_published_posts] => "delete_published_{$capability_type}s"
-		 * [delete_others_posts]    => "delete_others_{$capability_type}s"
-		 * [edit_private_posts]     => "edit_private_{$capability_type}s"
-		 * [edit_published_posts]   => "edit_published_{$capability_type}s"
-		 *
-		 */
 		$capabilities = array(
 			'edit_post'              => 'edit_' . self::$post_type_1,
 			'read_post'              => 'read_' . self::$post_type_1,
@@ -922,30 +921,6 @@ class FB_Archive {
 			'edit_published_posts'   => 'edit_published_' . self::$post_type_1 . 's',
 		);
 
-		/**
-		 * - label - Name of the post type shown in the menu. Usually plural. If not set, labels['name'] will be used.
-		 * - description - A short descriptive summary of what the post type is. Defaults to blank.
-		 * - public - Whether posts of this type should be shown in the admin UI. Defaults to false.
-		 * - exclude_from_search - Whether to exclude posts with this post type from search results. Defaults to true if the type is not public, false if the type is public.
-		 * - publicly_queryable - Whether post_type queries can be performed from the front page.  Defaults to whatever public is set as.
-		 * - show_ui - Whether to generate a default UI for managing this post type. Defaults to true if the type is public, false if the type is not public.
-		 * - menu_position - The position in the menu order the post type should appear. Defaults to the bottom.
-		 * - menu_icon - The url to the icon to be used for this menu. Defaults to use the posts icon.
-		 * - capability_type - The post type to use for checking read, edit, and delete capabilities. Defaults to "post".
-		 * - capabilities - Array of capabilities for this post type. You can see accepted values in {@link get_post_type_capabilities()}. By default the capability_type is used to construct capabilities.
-		 * - hierarchical - Whether the post type is hierarchical. Defaults to false.
-		 * - supports - An alias for calling add_post_type_support() directly. See add_post_type_support() for Documentation. Defaults to none.
-		 * - register_meta_box_cb - Provide a callback function that will be called when setting up the meta boxes for the edit form.  Do remove_meta_box() and add_meta_box() calls in the callback.
-		 * - taxonomies - An array of taxonomy identifiers that will be registered for the post type.  Default is no taxonomies. Taxonomies can be registered later with register_taxonomy() or register_taxonomy_for_object_type().
-		 * - labels - An array of labels for this post type. You can see accepted values in {@link get_post_type_labels()}. By default post labels are used for non-hierarchical types and page labels for hierarchical ones.
-		 * - permalink_epmask - The default rewrite endpoint bitmasks.
-		 * - rewrite - false to prevent rewrite, or array('slug'=>$slug) to customize permastruct; default will use $post_type as slug.
-		 * - query_var - false to prevent queries, or string to value of the query var to use for this post type
-		 * - can_export - true allows this post type to be exported.
-		 * - show_in_nav_menus - true makes this post type available for selection in navigation menus.
-		 * - _builtin - true if this post type is a native or "built-in" post_type.  THIS IS FOR INTERNAL USE ONLY!
-		 * - _edit_link - URL segement to use for edit link of this post type.  Set to 'post.php?post=%d'.  THIS IS FOR INTERNAL USE ONLY!
-		 */
 		$args = array(
 			'labels'              => $labels,
 			'description'         => esc_attr__(
@@ -974,7 +949,7 @@ class FB_Archive {
 				'page-attributes',
 			),
 			'taxonomies'          => array( 'category', 'post_tag', self::$taxonomy_type_1 ),
-			'has_archive'         => TRUE
+			'has_archive'         => TRUE,
 		);
 
 		/**
@@ -1002,30 +977,30 @@ class FB_Archive {
 	}
 
 	/**
-	 * Retunr taxonmoie strings
+	 * Return taxonomy strings
 	 *
 	 * @uses    get_object_term_cache, wp_cache_add, wp_get_object_terms, _make_cat_compat
 	 * @access  public
 	 * @since   0.0.1
 	 *
 	 * @param   string   $taxonomy key
-	 * @param   bool|int $id       , Default is FALSE
+	 * @param   bool|int $post_id  , Default is FALSE
 	 *
 	 * @return  array string $categories
 	 */
-	public function get_the_taxonomy( $taxonomy, $id = FALSE ) {
+	public function get_the_taxonomy( $taxonomy, $post_id = FALSE ) {
 
 		global $post;
 
-		$id = (int) $id;
-		if ( ! $id ) {
-			$id = (int) $post->ID;
+		$post_id = (int) $post_id;
+		if ( ! $post_id ) {
+			$post_id = (int) $post->ID;
 		}
 
-		$categories = get_object_term_cache( $id, $taxonomy );
+		$categories = get_object_term_cache( $post_id, $taxonomy );
 		if ( FALSE === $categories ) {
-			$categories = wp_get_object_terms( $id, $taxonomy );
-			wp_cache_add( $id, $categories, $taxonomy . '_relationships' );
+			$categories = wp_get_object_terms( $post_id, $taxonomy );
+			wp_cache_add( $post_id, $categories, $taxonomy . '_relationships' );
 		}
 
 		if ( ! empty( $categories ) ) {
@@ -1054,7 +1029,7 @@ class FB_Archive {
 	 */
 	public function add_columns( $columns ) {
 
-		// add id list
+		// add post_id list
 		$columns[ 'aid' ] = esc_attr__( 'ID', self::$textdomain );
 
 		/*
@@ -1077,19 +1052,19 @@ class FB_Archive {
 	 * @since   0.0.1
 	 *
 	 * @param  string  $column_name
-	 * @param  integer $id
+	 * @param  integer $post_id
 	 *
-	 * @return integer $id
+	 * @return integer $post_id
 	 */
-	public function return_custom_columns( $column_name, $id ) {
+	public function return_custom_columns( $column_name, $post_id ) {
 
-		$id = (int) $id;
+		$post_id = (int) $post_id;
 
 		switch ( $column_name ) {
 			case self::$taxonomy_type_1:
-				$taxonomys = get_the_term_list( $id, self::$taxonomy_type_1, '', ', ', '' );
-				if ( isset( $taxonomys[ 0 ] ) ) {
-					$structure = $taxonomys;
+				$taxonomies = get_the_term_list( $post_id, self::$taxonomy_type_1, '', ', ', '' );
+				if ( isset( $taxonomies[ 0 ] ) ) {
+					$structure = $taxonomies;
 				} else {
 					$structure = esc_attr__( 'No', self::$textdomain ) . self::$taxonomy_type_1;
 				}
@@ -1097,13 +1072,15 @@ class FB_Archive {
 				$value = $structure;
 				break;
 			case 'aid':
-				$value = $id;
+				$value = $post_id;
 				break;
 		}
 
 		if ( isset( $value ) ) {
 			echo $value;
 		}
+
+		return NULL;
 	}
 
 	/**
@@ -1154,7 +1131,7 @@ class FB_Archive {
 	 * @since    0.0.1
 	 *
 	 * @internal param string $array $actions
-	 * @internal param int $id
+	 * @internal param int $post_id
 	 *
 	 * @return array $actions
 	 */
@@ -1206,9 +1183,17 @@ class FB_Archive {
 		}
 
 		$contextual_help =
-			'<p>' . esc_attr__( 'Archive your post types, also possible via cron; but only active via variable inside the php-file.', self::$textdomain )
-			. '<br>' . esc_attr__( 'Use the shortcode [archive] to list all posts from Archive with status publish to a page or post.', self::$textdomain )
-			. '<br>' . esc_attr__( 'The shortcode can use different params and use the follow defaults.', self::$textdomain )
+			'<p>' . esc_attr__(
+				'Archive your post types, also possible via cron; but only active via variable inside the php-file.',
+				self::$textdomain
+			)
+			. '<br>' . esc_attr__(
+				'Use the shortcode [archive] to list all posts from Archive with status publish to a page or post.',
+				self::$textdomain
+			)
+			. '<br>' . esc_attr__(
+				'The shortcode can use different params and use the follow defaults.', self::$textdomain
+			)
 			. '</p><p><pre><code>' . "
 'count'         => -1, // count or -1 for all posts
 'category'      => '', // Show posts associated with certain categories.
@@ -1264,7 +1249,7 @@ class FB_Archive {
 	public function add_shortcode( $atts, $content = NULL ) {
 
 		extract(
-			$a = shortcode_atts(
+			$attribute = shortcode_atts(
 				array(
 					'count'         => - 1, // count or -1 for all posts
 					'category'      => '', // Show posts associated with certain categories.
@@ -1281,10 +1266,10 @@ class FB_Archive {
 
 		$args = array(
 			'post_type'      => self::$post_type_1,
-			'post_status'    => $a[ 'post_status' ],
-			'posts_per_page' => $a[ 'count' ],
-			'cat'            => $a[ 'category' ],
-			'tag'            => $a[ 'tag' ],
+			'post_status'    => $attribute[ 'post_status' ],
+			'posts_per_page' => $attribute[ 'count' ],
+			'cat'            => $attribute[ 'category' ],
+			'tag'            => $attribute[ 'tag' ],
 		);
 
 		$archived_posts = '';
@@ -1297,14 +1282,14 @@ class FB_Archive {
 				$posts->the_post();
 				$post_id = get_the_ID();
 
-				if ( 'true' === $a[ 'echo' ] ) {
-					$archived_posts .= '<' . $a[ 'title_markup' ] . '><a href="' .
+				if ( 'true' === $attribute[ 'echo' ] ) {
+					$archived_posts .= '<' . $attribute[ 'title_markup' ] . '><a href="' .
 						get_permalink( $post_id ) . '" title="' . get_the_title() . '" >' .
 						get_the_title() . '</a>';
-					if ( 'true' === $a[ 'content' ] ) {
+					if ( 'true' === $attribute[ 'content' ] ) {
 						$archived_posts .= apply_filters( 'the_content', get_the_content() );
 					}
-					$archived_posts .= '</' . $a[ 'title_markup' ] . '>';
+					$archived_posts .= '</' . $attribute[ 'title_markup' ] . '>';
 				} else {
 					//(array) $archived_post = new stdClass();
 					$archived_post            = array();
@@ -1319,12 +1304,11 @@ class FB_Archive {
 		}
 
 		wp_reset_postdata();
-		wp_reset_query();
 
-		$archived_posts = '<' . $a[ 'return_markup' ] . '>' . $archived_posts . '</' . $a[ 'return_markup' ] . '>';
+		$archived_posts = '<' . $attribute[ 'return_markup' ] . '>' . $archived_posts . '</' . $attribute[ 'return_markup' ] . '>';
 		$archived_posts = apply_filters( 'fb_get_archive', $archived_posts );
 
-		if ( 'true' === $a[ 'debug' ] ) {
+		if ( 'true' === $attribute[ 'debug' ] ) {
 			echo '<h1>Debug Archived Posts</h1><pre>';
 			var_dump( $archived_posts );
 			echo '</pre>';
